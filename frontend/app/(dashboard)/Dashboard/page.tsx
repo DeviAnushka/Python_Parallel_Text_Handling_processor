@@ -4,7 +4,7 @@ import AnswerGrid from "../Answer/page"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { CheckCircle2, Upload, Zap, Search, BarChart3, Database, Files, X, FolderOpen } from "lucide-react"
+import { CheckCircle2, Upload, Zap, Search, BarChart3, Database, Files, X, FolderOpen, FileStack } from "lucide-react"
 
 const operationsList = [
   { id: "Summarization", label: "Summarization", icon: "📄" },
@@ -86,6 +86,7 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       setResults(data.results); setStats(data.stats);
+      alert("Analysis complete! Details archived in Inbox.");
     } catch (e) { alert("Backend Error"); }
     setIsLoading(false);
   };
@@ -120,46 +121,54 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* 2. DUAL-MODE UPLOADER */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="p-8 border-2 border-dashed border-blue-200 dark:border-zinc-800 hover:border-blue-500 transition-all cursor-pointer rounded-3xl flex flex-col items-center justify-center bg-gray-50/30 dark:bg-zinc-900/30" onClick={() => fileInputRef.current?.click()}>
+      {/* 2. CONSOLIDATED UPLOAD HUB (Fixes multiple cards issue) */}
+      <Card className="p-10 border-2 border-dashed border-blue-200 dark:border-zinc-800 bg-gray-50/30 dark:bg-zinc-900/30 rounded-[2.5rem] text-center space-y-6">
+        <div className="flex flex-col items-center gap-2">
+            <div className="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                <FileStack className="text-blue-600 dark:text-blue-400" size={32} />
+            </div>
+            <h3 className="text-xl font-black text-gray-800 dark:text-white tracking-tight">Dataset Ingestion Hub</h3>
+            <p className="text-xs text-gray-500 max-w-xs mx-auto">Upload multiple CSV files individually or select an entire directory for parallel processing.</p>
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-4">
+            {/* Hidden Inputs */}
             <input type="file" className="hidden" ref={fileInputRef} multiple accept=".csv" onChange={handleFileSelection} />
-            <Files className="text-blue-500 mb-2" size={24} />
-            <span className="text-sm font-bold text-gray-600 dark:text-zinc-400">Select Multiple Files</span>
-          </Card>
+            <input type="file" className="hidden" ref={folderInputRef} {...({ webkitdirectory: "", directory: "" } as any)} multiple onChange={handleFileSelection} />
 
-          <Card className="p-8 border-2 border-dashed border-purple-200 dark:border-zinc-800 hover:border-purple-500 transition-all cursor-pointer rounded-3xl flex flex-col items-center justify-center bg-gray-50/30 dark:bg-zinc-900/30" onClick={() => folderInputRef.current?.click()}>
-            {/* FIXED LINE 109: Wrapped webkitdirectory in spread attributes to bypass TS errors */}
-            <input 
-              type="file" 
-              className="hidden" 
-              ref={folderInputRef} 
-              {...({ webkitdirectory: "", directory: "" } as any)} 
-              multiple 
-              onChange={handleFileSelection} 
-            />
-            <FolderOpen className="text-purple-500 mb-2" size={24} />
-            <span className="text-sm font-bold text-gray-600 dark:text-zinc-400">Upload Entire Folder</span>
-          </Card>
-      </div>
+            <Button 
+                onClick={() => fileInputRef.current?.click()} 
+                className="bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-zinc-700 hover:bg-blue-50 rounded-2xl px-6 py-6 h-auto shadow-sm transition-all active:scale-95"
+            >
+                <Files className="mr-2" size={18} /> Select Files
+            </Button>
 
-      {selectedFiles.length > 0 && (
-          <Card className="p-6 bg-blue-600 text-white rounded-3xl flex justify-between items-center animate-in zoom-in">
-              <div className="flex gap-6">
-                  <div>
-                      <p className="text-[10px] uppercase font-bold opacity-70">Queued Files</p>
-                      <p className="text-xl font-black">{selectedFiles.length}</p>
-                  </div>
-                  <div className="border-l border-white/20 pl-6">
-                      <p className="text-[10px] uppercase font-bold opacity-70">Total Records</p>
-                      <p className="text-xl font-black">~ {totalRows.toLocaleString()}</p>
-                  </div>
-              </div>
-              <Button variant="ghost" className="hover:bg-white/10 text-white" onClick={() => {setSelectedFiles([]); setInputText(""); setTotalRows(0);}}>
-                  <X size={20}/>
-              </Button>
-          </Card>
-      )}
+            <Button 
+                onClick={() => folderInputRef.current?.click()} 
+                className="bg-white dark:bg-zinc-800 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-zinc-700 hover:bg-purple-50 rounded-2xl px-6 py-6 h-auto shadow-sm transition-all active:scale-95"
+            >
+                <FolderOpen className="mr-2" size={18} /> Select Folder
+            </Button>
+        </div>
+
+        {selectedFiles.length > 0 && (
+            <div className="pt-4 animate-in zoom-in duration-300">
+                <div className="inline-flex items-center gap-4 bg-blue-600 text-white px-6 py-3 rounded-2xl shadow-lg shadow-blue-200 dark:shadow-none">
+                    <div className="text-left border-r border-white/20 pr-4">
+                        <p className="text-[9px] uppercase font-bold opacity-70">Queued</p>
+                        <p className="text-sm font-black">{selectedFiles.length} CSVs</p>
+                    </div>
+                    <div className="text-left pr-2">
+                        <p className="text-[9px] uppercase font-bold opacity-70">Total Rows</p>
+                        <p className="text-sm font-black">~{totalRows.toLocaleString()}</p>
+                    </div>
+                    <button onClick={() => {setSelectedFiles([]); setInputText(""); setTotalRows(0);}} className="p-1 hover:bg-white/20 rounded-full transition-colors">
+                        <X size={18} />
+                    </button>
+                </div>
+            </div>
+        )}
+      </Card>
 
       {/* 3. OPERATION CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -173,7 +182,7 @@ export default function DashboardPage() {
       </div>
 
       <Button onClick={handleRunAll} disabled={isLoading || selectedFiles.length === 0} className="w-full py-8 text-xl bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all active:scale-[0.98]">
-        {isLoading ? "Merging & Processing Parallel Pipeline..." : "Initialize High-Speed Analysis"}
+        {isLoading ? "Executing Parallel Logic..." : "Run Bulk Parallel Analysis"}
       </Button>
 
       <AnswerGrid results={results} />
@@ -182,8 +191,8 @@ export default function DashboardPage() {
       <div className="pt-10 border-t mt-12 bg-gray-50/30 dark:bg-zinc-900/30 p-6 rounded-[2rem]">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-gray-800 dark:text-white"><Database className="text-blue-500" /> Global Content Search</h2>
         <div className="flex flex-col md:flex-row gap-3 mb-8">
-            <Input placeholder="Query indexed records..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-14 text-lg rounded-2xl border-2 bg-white dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" onKeyDown={(e) => e.key === 'Enter' && handleSearch()}/>
-            <Button size="lg" onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-10 h-14 font-bold shadow-md">Search Database</Button>
+            <Input placeholder="Query indexed historical records..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-14 text-lg rounded-2xl border-2 bg-white dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" onKeyDown={(e) => e.key === 'Enter' && handleSearch()}/>
+            <Button size="lg" onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-10 h-14 font-bold shadow-md active:scale-95">Search Database</Button>
         </div>
         <div className="space-y-4">
             {searchResults.map((r: any) => (

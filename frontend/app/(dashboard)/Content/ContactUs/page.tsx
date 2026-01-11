@@ -1,116 +1,54 @@
 "use client"
-
-import React, { useState } from "react"
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card"
+import { useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
+import { Mail, Send, User, MessageSquare } from "lucide-react"
 
 export default function ContactUsPage() {
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [message, setMessage] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState("")
-  const [error, setError] = useState("")
+  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [loading, setLoading] = useState(false);
 
-  // Handles sending form via fetch
   const handleSend = async () => {
-    if (!name || !email || !message) {
-      alert("Please fill out all fields")
-      return
-    }
-
-    setLoading(true)
-    setSuccess("")
-    setError("")
-
+    if (!form.message) return alert("Please type a message");
+    setLoading(true);
     try {
-      const response = await fetch("/api/contact", {
+      const res = await fetch("http://127.0.0.1:5001/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, message }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to send message")
+        body: JSON.stringify(form),
+      });
+      if (res.ok) {
+        alert("Success! Our support team will contact you via email.");
+        setForm({ name: "", email: "", message: "" });
       }
-
-      setSuccess("Message sent successfully!")
-      setName("")
-      setEmail("")
-      setMessage("")
-    } catch (err: any) {
-      setError(err.message || "Something went wrong")
-    } finally {
-      setLoading(false)
-    }
-  }
+    } catch (e) { alert("Backend error"); }
+    setLoading(false);
+  };
 
   return (
-    <div className="flex justify-center items-start min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-zinc-900 dark:via-black dark:to-zinc-900 p-6">
-      <Card className="w-full max-w-lg rounded-2xl border border-gray-100 dark:border-zinc-800 shadow-xl">
-        <CardHeader className="text-center pt-8">
-          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
-            Contact Us
-          </CardTitle>
-          <CardDescription className="text-gray-500 dark:text-gray-400">
-            Have a question or feedback? Send us a message.
-          </CardDescription>
+    <div className="p-12 max-w-2xl mx-auto animate-in fade-in">
+      <Card className="rounded-3xl shadow-xl border-none p-6">
+        <CardHeader className="text-center">
+          <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Mail className="text-blue-600" size={32} />
+          </div>
+          <CardTitle className="text-3xl font-bold">Contact Support</CardTitle>
+          <p className="text-gray-400 mt-2">Expect a response within 24 hours.</p>
         </CardHeader>
-
-        <CardContent className="space-y-5 py-6">
-          <Input
-            type="text"
-            placeholder="Your Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="h-12 text-base rounded-xl"
+        <CardContent className="space-y-4 pt-6">
+          <Input placeholder="Your Name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+          <Input placeholder="Email Address" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
+          <textarea 
+            placeholder="Describe your issue..." 
+            className="w-full h-32 p-4 border rounded-xl bg-gray-50 focus:bg-white transition-all outline-none text-sm"
+            value={form.message} 
+            onChange={e => setForm({...form, message: e.target.value})}
           />
-
-          <Input
-            type="email"
-            placeholder="Your Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="h-12 text-base rounded-xl"
-          />
-
-          <Textarea
-            placeholder="Your Message"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            className="h-32 text-base rounded-xl resize-none"
-          />
-        </CardContent>
-
-        <CardFooter className="flex flex-col gap-4 pb-8">
-          <Button
-            onClick={handleSend}
-            className="w-full h-12 text-base font-medium rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:opacity-90 transition"
-            disabled={loading}
-          >
-            {loading ? "Sending..." : "Send Message"}
+          <Button onClick={handleSend} disabled={loading} className="w-full py-6 bg-blue-600 rounded-xl gap-2 text-lg">
+            {loading ? "Sending..." : <>Submit Ticket <Send size={18}/></>}
           </Button>
-
-          {success && (
-            <p className="text-center text-green-600 dark:text-green-400 font-medium">
-              {success}
-            </p>
-          )}
-          {error && (
-            <p className="text-center text-red-600 dark:text-red-400 font-medium">
-              {error}
-            </p>
-          )}
-        </CardFooter>
+        </CardContent>
       </Card>
     </div>
   )

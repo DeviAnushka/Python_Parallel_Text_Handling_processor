@@ -1,111 +1,137 @@
-"use client"
+"use client";
 
-import React, { useState } from "react"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Calendar as LucideCalendar } from "lucide-react"
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { 
+  FileText, Clock, CheckCircle2, 
+  ChevronRight, Calendar as CalendarIcon, Download, X,
+  Filter
+} from "lucide-react";
+import AnswerGrid from "../../Answer/page";
 
-interface CalendarEvent {
-  id: number
-  title: string
-  date: string
-  description: string
-}
+export default function CalendarPage() {
+  const [history, setHistory] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [filter, setFilter] = useState("Month"); // Today | Week | Month
 
-const CalenderPage = () => {
-  // Example events
-  const [events] = useState<CalendarEvent[]>([
-    {
-      id: 1,
-      title: "Text Summarization",
-      date: "2026-01-02",
-      description: "Parallel text summarization task completed.",
-    },
-    {
-      id: 2,
-      title: "Translation",
-      date: "2026-01-03",
-      description: "Text translation to French completed.",
-    },
-    {
-      id: 3,
-      title: "Spell Check",
-      date: "2026-01-04",
-      description: "Spell check operation finished successfully.",
-    },
-  ])
+  useEffect(() => {
+    fetch("http://127.0.0.1:5001/api/history")
+      .then(res => res.json())
+      .then(data => setHistory(data));
+  }, []);
 
+  const getStatusColor = (status: string) => {
+    if (status === "Completed") return "text-green-500 bg-green-50 border-green-100";
+    return "text-gray-400 bg-gray-50 border-gray-100";
+  };
 
-    const [name, setName] = useState("")
-    const [email, setEmail] = useState("")
-    const [message, setMessage] = useState("")
-    const [loading, setLoading] = useState(false)
-    const [success, setSuccess] = useState("")
-    const [error, setError] = useState("")
-  
-    // Handles sending form via fetch
-    const handleSend = async () => {
-      if (!name || !email || !message) {
-        alert("Please fill out all fields")
-        return
-      }
-  
-      setLoading(true)
-      setSuccess("")
-      setError("")
-  
-      try {
-        const response = await fetch("/api/contact", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, message }),
-        })
-  
-        if (!response.ok) {
-          throw new Error("Failed to send message")
-        }
-  
-        setSuccess("Message sent successfully!")
-        setName("")
-        setEmail("")
-        setMessage("")
-      } catch (err: any) {
-        setError(err.message || "Something went wrong")
-      } finally {
-        setLoading(false)
-      }
-    }
-    
   return (
-    <div className="p-6 bg-gray-50 dark:bg-zinc-900 min-h-screen space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-        <LucideCalendar className="w-6 h-6 text-blue-500" />
-        Calendar
-      </h1>
+    <div className="p-8 max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
+      
+      {/* 1. HEADER & DATE CONTROLS (Fix 1 & 3) */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+            <CalendarIcon className="text-blue-600" /> Execution History
+          </h1>
+          <p className="text-gray-500 mt-1">View analysis executions by date and time.</p>
+        </div>
 
-      {events.length === 0 ? (
-        <p className="text-gray-500 dark:text-gray-400">No events scheduled.</p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {events.map((event) => (
-            <Card
-              key={event.id}
-              className="border-gray-200 dark:border-zinc-800 shadow-md rounded-2xl"
+        {/* Date Range Picker Placeholder */}
+        <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
+          {["Today", "Week", "Month"].map((period) => (
+            <button
+              key={period}
+              onClick={() => setFilter(period)}
+              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                filter === period 
+                ? "bg-white text-blue-600 shadow-sm" 
+                : "text-gray-400 hover:text-gray-600"
+              }`}
             >
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {event.title}
-                </CardTitle>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{event.date}</p>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700 dark:text-gray-300">{event.description}</p>
+              {period}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 2. TIMELINE VIEW */}
+      <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">
+        
+        {/* REAL DATA */}
+        {history.map((item: any) => (
+          <div key={item.id} className="relative pl-12 group">
+            <div className="absolute left-0 mt-1.5 w-10 h-10 rounded-full border-4 border-white bg-blue-600 flex items-center justify-center shadow-sm z-10">
+               <FileText className="text-white" size={16} />
+            </div>
+            <Card className="border-none shadow-sm hover:shadow-md transition-all rounded-2xl overflow-hidden border border-gray-100 bg-white">
+              <CardContent className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="space-y-2 flex-1">
+                  <div className="flex items-center gap-3">
+                      <span className="text-xs font-mono text-gray-400 flex items-center gap-1">
+                          <Clock size={12}/> {item.timestamp}
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${getStatusColor(item.status)}`}>
+                          {item.status}
+                      </span>
+                  </div>
+                  <h3 className="font-bold text-gray-800 text-lg">{item.filename}</h3>
+                  <p className="text-sm text-gray-500">
+                      <span className="font-semibold text-blue-600">Operations:</span> {item.operations}
+                  </p>
+                </div>
+                <Button onClick={() => setSelectedEvent(item)} className="bg-gray-50 text-gray-700 hover:bg-blue-600 hover:text-white rounded-xl gap-2 border shadow-none">
+                    View Report <ChevronRight size={16}/>
+                </Button>
               </CardContent>
             </Card>
-          ))}
+          </div>
+        ))}
+
+        {/* 3. EXAMPLE ROW (Fix 2 - Visible when no data or at the end) */}
+        {history.length === 0 && (
+          <div className="relative pl-12 opacity-40 grayscale pointer-events-none">
+            <div className="absolute left-0 mt-1.5 w-10 h-10 rounded-full border-4 border-white bg-gray-300 flex items-center justify-center z-10">
+               <FileText className="text-white" size={16} />
+            </div>
+            <Card className="border-none shadow-none rounded-2xl border-2 border-dashed border-gray-200 bg-transparent">
+              <CardContent className="p-6 flex justify-between items-center">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase">Sample Preview</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border border-gray-200 text-gray-300">Pending</span>
+                  </div>
+                  <h3 className="font-bold text-gray-300 text-lg italic">example_dataset.csv</h3>
+                  <p className="text-sm text-gray-300">Run an analysis to populate this timeline.</p>
+                </div>
+                <div className="w-24 h-10 bg-gray-100 rounded-xl" />
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+
+      {/* DETAIL MODAL */}
+      {selectedEvent && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-5xl max-h-[90vh] overflow-y-auto bg-white rounded-3xl p-8 relative animate-in zoom-in duration-300">
+            <button onClick={() => setSelectedEvent(null)} className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition">
+              <X size={24} />
+            </button>
+            <div className="mb-8 border-b pb-6">
+                <h2 className="text-2xl font-bold text-gray-800">Historical Report</h2>
+                <p className="text-xs text-gray-400 mt-1 font-mono uppercase tracking-widest">ID: {selectedEvent.id} // TS: {selectedEvent.timestamp}</p>
+            </div>
+            <AnswerGrid results={JSON.parse(selectedEvent.report_data)} />
+            <div className="mt-10 flex justify-end">
+              <Button className="bg-green-600 hover:bg-green-700 gap-2 px-8 py-6 rounded-2xl font-bold transition-all">
+                <Download size={18} /> Export Archive (.CSV)
+              </Button>
+            </div>
+          </Card>
         </div>
       )}
     </div>
-  )
+  );
 }
-
-export default CalenderPage

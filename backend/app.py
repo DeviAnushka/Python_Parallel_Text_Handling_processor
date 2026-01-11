@@ -1,127 +1,117 @@
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
+import sqlite3, json, io, csv
 from werkzeug.security import generate_password_hash, check_password_hash
-import io
-import csv
-import re
-import sqlite3 # 1. Import SQLite
-from textblob import TextBlob
+from backend_text_analysis import TextAnalyzer
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
+DATABASE_PATH = 'users.db'
 
-# --- 2. DATABASE SETUP ---
-DB_FILE = "users.db"
+def get_db():
+    conn = sqlite3.connect(DATABASE_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 def init_db():
-    """Creates the database and the users table if they don't exist."""
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            email TEXT UNIQUE,
-            password TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    with get_db() as db:
+        db.execute('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT UNIQUE, password TEXT)')
+        db.execute('CREATE TABLE IF NOT EXISTS processed_history (id INTEGER PRIMARY KEY AUTOINCREMENT, content TEXT, score REAL, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)')
+        db.execute('CREATE INDEX IF NOT EXISTS idx_content ON processed_history(content)')
+        db.execute('CREATE TABLE IF NOT EXISTS inbox (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, message TEXT, type TEXT, report_data TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)')
+        db.execute('CREATE TABLE IF NOT EXISTS activity_history (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT, operations TEXT, status TEXT, records_count INTEGER, processing_time REAL, report_data TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)')
+        db.execute('CREATE TABLE IF NOT EXISTS contact_messages (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, message TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)')
+    print("Database Systems Fully Synchronized on Port 5001.")
 
-# Initialize the database when the script starts
 init_db()
-
-# --- AUTHENTICATION ROUTES (UPDATED FOR DATABASE) ---
 
 @app.route("/api/signup", methods=["POST"])
 def signup():
     data = request.json
-    email = data.get("email")
-    password = data.get("password")
-    name = data.get("full_name")
-
-    hashed_pw = generate_password_hash(password)
-
+    pw = generate_password_hash(data.get("password"))
     try:
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", (name, email, hashed_pw))
-        conn.commit()
-        conn.close()
-        return jsonify({"message": "Account created successfully"}), 201
-    except sqlite3.IntegrityError:
-        return jsonify({"message": "User already exists"}), 400
+        with get_db() as db:
+            db.execute("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", (data.get("full_name"), data.get("email"), pw))
+            db.commit()
+        return jsonify({"message": "Success"}), 201
+    except: return jsonify({"message": "User exists"}), 400
 
 @app.route("/api/login", methods=["POST"])
 def login():
     data = request.json
-    email = data.get("email")
-    password = data.get("password")
+    with get_db() as db:
+        user = db.execute("SELECT * FROM users WHERE email = ?", (data.get("email"),)).fetchone()
+    if user and check_password_hash(user['password'], data.get("password")):
+        return jsonify({"message": "OK", "user": data.get("email")}), 200
+    return jsonify({"message": "Error"}), 401
 
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    # Find user by email
-    cursor.execute("SELECT email, password FROM users WHERE email = ?", (email,))
-    user = cursor.fetchone() # returns (email, password) or None
-    conn.close()
+@app.route("/api/reset-password", methods=["POST"])
+def reset_password():
+    data = request.json
+    new_pw = generate_password_hash(data.get("new_password"))
+    with get_db() as db:
+        user = db.execute("SELECT * FROM users WHERE email = ?", (data.get("email"),)).fetchone()
+        if not user: return jsonify({"message": "Email not found"}), 404
+        db.execute("UPDATE users SET password = ? WHERE email = ?", (new_pw, data.get("email")))
+        db.commit()
+    return jsonify({"message": "Updated"}), 200
 
-    if user and check_password_hash(user[1], password):
-        return jsonify({"message": "Login successful", "user": email}), 200
-    
-    return jsonify({"message": "Invalid email or password"}), 401
-
-# --- TEXT ANALYSIS ROUTE (SAME AS BEFORE) ---
-
-@app.route("/api/analyze", methods=["POST"])
+@app.route('/api/analyze', methods=['POST'])
 def analyze():
     data = request.json
-    raw_text = data.get("text", "")
-    operations = data.get("operations", [])
-    
-    processed_text = raw_text
-    if raw_text.strip().startswith("id,"):
-        try:
-            f = io.StringIO(raw_text.strip())
-            reader = csv.DictReader(f)
-            rows = [row.get('answer') or row.get('question') or row.get('content') or "" for row in reader]
-            processed_text = " ".join(rows)
-        except:
-            pass
+    analyzer = TextAnalyzer()
+    results, raw_rows, stats, scores = analyzer.run_pipeline(data.get('text', ''), data.get('operations', []))
+    if raw_rows:
+        with get_db() as db:
+            for idx, row in enumerate(raw_rows[:50]):
+                db.execute("INSERT INTO processed_history (content, score) VALUES (?, ?)", (str(row), scores[idx]))
+            report_json = json.dumps(results)
+            db.execute("INSERT INTO inbox (title, message, type, report_data) VALUES (?, ?, ?, ?)", 
+                       ("Analysis Task Completed", f"Processed {len(raw_rows)} records successfully.", "success", report_json))
+            db.execute('''INSERT INTO activity_history (filename, operations, status, records_count, processing_time, report_data) 
+                         VALUES (?, ?, ?, ?, ?, ?)''', (data.get('filename', 'Manual_Input.csv'), ", ".join(data.get('operations', [])), "Completed", len(raw_rows), stats['processing_time'], report_json))
+            if stats.get('alert'):
+                db.execute("INSERT INTO inbox (title, message, type, report_data) VALUES (?, ?, ?, ?)", ("Risk Alert", "High risk sentiment threshold breached.", "alert", None))
+            db.commit()
+    return jsonify({"results": results, "stats": stats})
 
-    results = []
-    for op in operations:
-        output = ""
-        try:
-            if op == "Summarization":
-                sentences = processed_text.split('.')
-                output = '.'.join(sentences[:2]) + "..." if len(sentences) > 2 else processed_text
-            elif op == "Sentiment Analysis":
-                pol = TextBlob(processed_text).sentiment.polarity
-                output = "Positive 😊" if pol > 0.1 else "Negative 😠" if pol < -0.1 else "Neutral 😐"
-            elif op == "Convert Case":
-                output = processed_text.upper()
-            elif op == "Grammar Correction" or op == "Spell Check":
-                output = str(TextBlob(processed_text).correct())
-            else:
-                output = f"Processed {op} successfully."
-        except Exception as e:
-            output = f"Error: {str(e)}"
+@app.route('/api/search', methods=['GET'])
+def search():
+    q = request.args.get('q', '')
+    with get_db() as db:
+        rows = db.execute("SELECT * FROM processed_history WHERE content LIKE ? ORDER BY timestamp DESC LIMIT 10", (f'%{q}%',)).fetchall()
+    return jsonify([dict(r) for r in rows])
 
-        results.append({"title": op, "output": output, "success": True})
+@app.route('/api/history', methods=['GET'])
+def get_history():
+    with get_db() as db:
+        rows = db.execute("SELECT * FROM activity_history ORDER BY timestamp DESC").fetchall()
+    return jsonify([dict(r) for r in rows])
 
-    return jsonify({"results": results})
+@app.route('/api/inbox', methods=['GET'])
+def get_inbox():
+    with get_db() as db:
+        rows = db.execute("SELECT * FROM inbox ORDER BY timestamp DESC").fetchall()
+    return jsonify([dict(r) for r in rows])
 
-@app.route("/api/export", methods=["POST"])
-def export_report():
+@app.route('/api/cleanup', methods=['POST'])
+def cleanup():
+    with get_db() as db:
+        db.execute("DELETE FROM processed_history")
+        db.execute("DELETE FROM activity_history")
+        db.commit()
+    return jsonify({"message": "Cleaned"}), 200
+
+@app.route('/api/contact', methods=['POST'])
+def contact():
     data = request.json
-    results = data.get("results", [])
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["Operation", "Processed Output"])
-    for res in results:
-        writer.writerow([res['title'], res['output']])
-    return Response(output.getvalue(), mimetype="text/csv", headers={"Content-disposition": "attachment; filename=report.csv"})
+    with get_db() as db:
+        db.execute("INSERT INTO contact_messages (name, email, message) VALUES (?, ?, ?)", (data.get('name'), data.get('email'), data.get('message')))
+        db.commit()
+    return jsonify({"message": "Sent"}), 200
 
-if __name__ == "__main__":
-    print("Backend running on http://127.0.0.1:5500") # Changed 5000 to 5500
+@app.route('/api/health')
+def health(): return jsonify({"status": "Success"})
+
+if __name__ == '__main__':
     app.run(debug=True, port=5001)

@@ -1,12 +1,11 @@
 "use client"
-
 import { useState } from "react"
-import AnswerGrid from "../Answer/page" // Importing the grid from your sibling folder
+import AnswerGrid from "../Answer/page"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { CheckCircle2, Download } from "lucide-react" // Added Download icon
+import { Input } from "@/components/ui/input"
+import { CheckCircle2, Upload, Zap, Search, BarChart3, Database } from "lucide-react"
 
-// List of operations
 const operationsList = [
   { id: "Summarization", label: "Summarization", icon: "📄" },
   { id: "Translation", label: "Translation", icon: "🌐" },
@@ -19,148 +18,104 @@ const operationsList = [
 ]
 
 export default function DashboardPage() {
-  // --- STATE ---
-  const [inputText, setInputText] = useState("")
-  const [selectedOps, setSelectedOps] = useState<string[]>([])
-  const [results, setResults] = useState([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [inputText, setInputText] = useState("");
+  const [selectedOps, setSelectedOps] = useState<string[]>([]);
+  const [results, setResults] = useState([]);
+  const [stats, setStats] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [fileName, setFileName] = useState("");
 
-  // --- LOGIC: Select/Deselect Cards ---
-  const toggleOperation = (id: string) => {
-    setSelectedOps((prev) =>
-      prev.includes(id) ? prev.filter((op) => op !== id) : [...prev, id]
-    )
-  }
-
-  // --- LOGIC: Run Analysis ---
   const handleRunAll = async () => {
-    if (!inputText.trim() || selectedOps.length === 0) {
-      alert("Enter text and select at least one operation")
-      return
-    }
-
-    setIsLoading(true)
+    if (!inputText || selectedOps.length === 0) return alert("Select operations and upload a file.");
+    setIsLoading(true);
     try {
-      // UPDATED PORT TO 5001
-      const response = await fetch("http://127.0.0.1:5001/api/analyze", {
+      const res = await fetch("http://127.0.0.1:5001/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: inputText,
-          operations: selectedOps,
-        }),
-      })
-
-      const data = await response.json()
-      if (response.ok) {
-        setResults(data.results) 
-      } else {
-        alert(data.message || "Server error")
-      }
-    } catch (error) {
-      alert("Could not connect to Python backend. Is it running on port 5001?")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // --- LOGIC: Export to CSV ---
-  const handleExport = async () => {
-    if (results.length === 0) return alert("No results to export");
-
-    try {
-      // UPDATED PORT TO 5001
-      const response = await fetch("http://127.0.0.1:5001/api/export", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ results }),
+        body: JSON.stringify({ text: inputText, operations: selectedOps, email: localStorage.getItem("userEmail") || "Guest", filename: fileName }),
       });
+      const data = await res.json();
+      setResults(data.results); setStats(data.stats);
+      alert("Analysis successful! Detailed report archived in Inbox.");
+    } catch (e) { alert("Backend Error"); }
+    setIsLoading(false);
+  };
 
-      if (!response.ok) throw new Error("Export failed");
-
-      // Create a hidden link to download the file
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = "TextFlow_Report.csv";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    } catch (error) {
-      alert("Error downloading report. Check your backend export route on port 5001.");
-    }
+  const handleSearch = async () => {
+    const res = await fetch(`http://127.0.0.1:5001/api/search?q=${searchQuery}`);
+    setSearchResults(await res.json());
   };
 
   return (
-    <div className="p-8 space-y-8">
-      {/* 1. Input Area */}
-      <Card className="p-4 shadow-sm border-gray-100">
-        <textarea
-          className="w-full h-44 p-4 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:bg-zinc-900 resize-none transition-all"
-          placeholder="Paste or type your text here (CSV format supported)..."
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-        />
+    <div className="p-8 space-y-8 max-w-7xl mx-auto">
+      {stats && (
+        <div className="grid grid-cols-3 gap-6 animate-in fade-in">
+          <Card className="p-4 border-l-4 border-blue-500 bg-white shadow-sm">
+            <Zap className="text-blue-500 mb-1" size={18} />
+            <p className="text-[10px] text-gray-400 uppercase font-bold">Data Segments</p>
+            <p className="text-2xl font-bold">{stats.total_chunks}</p>
+          </Card>
+          <Card className="p-4 border-l-4 border-green-500 bg-white shadow-sm">
+            <BarChart3 className="text-green-500 mb-1" size={18} />
+            <p className="text-[10px] text-gray-400 uppercase font-bold">Execution Velocity</p>
+            <p className="text-2xl font-bold">{stats.processing_time.toFixed(4)}s</p>
+          </Card>
+          <Card className="p-4 border-l-4 border-red-500 bg-white shadow-sm">
+            <CheckCircle2 className="text-red-500 mb-1" size={18} />
+            <p className="text-[10px] text-gray-400 uppercase font-bold">System Status</p>
+            <p className="text-2xl font-bold">{stats.alert ? "🚨 ATTENTION" : "✅ STABLE"}</p>
+          </Card>
+        </div>
+      )}
+
+      <Card className="p-12 border-2 border-dashed text-center bg-gray-50/50 hover:border-blue-400 cursor-pointer rounded-2xl" onClick={() => document.getElementById('fileIn')?.click()}>
+        <input type="file" className="hidden" id="fileIn" onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) { setFileName(f.name); const r = new FileReader(); r.onload = (ev) => setInputText(ev.target?.result as string); r.readAsText(f); }
+        }} />
+        <Upload className="mx-auto mb-3 text-blue-500" size={32} />
+        <h3 className="font-bold text-gray-700 text-lg">{fileName || "Load External Dataset"}</h3>
+        <p className="text-xs text-gray-400 mt-1">Multi-core parallel processing enabled</p>
       </Card>
 
-      {/* 2. Operations Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         {operationsList.map((op) => (
-          <Card
-            key={op.id}
-            onClick={() => toggleOperation(op.id)}
-            className={`relative p-6 cursor-pointer transition-all border-2 group ${
-              selectedOps.includes(op.id)
-                ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md"
-                : "border-transparent hover:border-blue-200 hover:bg-gray-50/50 shadow-sm"
-            }`}
-          >
-            {selectedOps.includes(op.id) && (
-              <CheckCircle2 className="absolute top-3 right-3 w-5 h-5 text-blue-500 animate-in zoom-in" />
-            )}
-            <div className="text-3xl mb-3 group-hover:scale-110 transition-transform">{op.icon}</div>
-            <h3 className="font-semibold text-gray-800 dark:text-gray-100">{op.label}</h3>
-            <p className="text-xs text-gray-500 mt-1">Click to select</p>
+          <Card key={op.id} onClick={() => setSelectedOps(prev => prev.includes(op.id) ? prev.filter(i => i !== op.id) : [...prev, op.id])}
+            className={`p-6 cursor-pointer border-2 transition-all group ${selectedOps.includes(op.id) ? "border-blue-600 bg-blue-50/50 shadow-md scale-[1.02]" : "border-gray-100 hover:border-blue-200"}`}>
+            <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">{op.icon}</div>
+            <p className="font-bold text-gray-800 text-sm">{op.label}</p>
           </Card>
         ))}
       </div>
 
-      {/* 3. Action Buttons Section */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 py-4">
-        <Button
-          size="lg"
-          onClick={handleRunAll}
-          disabled={isLoading}
-          className="px-12 py-7 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-lg font-bold shadow-xl transition-all active:scale-95"
-        >
-          {isLoading ? "Processing..." : "Run All Parallel"}
-        </Button>
+      <Button onClick={handleRunAll} disabled={isLoading} className="w-full py-8 text-xl bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg">
+        {isLoading ? "Synchronizing Parallel Pipeline..." : "Initialize High-Speed Analysis"}
+      </Button>
 
-        {/* This button only appears after results are ready */}
-        {results.length > 0 && (
-          <Button 
-            variant="outline"
-            size="lg"
-            onClick={handleExport}
-            className="px-8 py-7 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 rounded-full text-lg font-bold flex items-center gap-2 transition-all"
-          >
-            <Download className="w-5 h-5" />
-            Download Report
-          </Button>
-        )}
+      <div className="animate-in slide-in-from-bottom-4 duration-700">
+        <AnswerGrid results={results} />
       </div>
 
-      {/* 4. Output Area */}
-      {results.length > 0 && (
-        <div className="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex items-center gap-3 mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Analysis Results</h2>
-            <div className="h-px flex-1 bg-gray-200 dark:bg-zinc-800" />
-          </div>
-          <AnswerGrid results={results} />
+      <div className="pt-10 border-t mt-12 bg-gray-50/30 p-6 rounded-3xl">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-gray-800"><Database className="text-blue-500" /> Global Content Search</h2>
+        <div className="flex gap-3 mb-8">
+            <Input placeholder="Search through millions of records..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-14 text-lg rounded-2xl border-2 bg-white" onKeyDown={(e) => e.key === 'Enter' && handleSearch()}/>
+            <Button size="lg" onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-10 h-14 font-bold shadow-md transition-all active:scale-95">Search Database</Button>
         </div>
-      )}
+        <div className="space-y-4">
+            {searchResults.map((r: any) => (
+                <Card key={r.id} className="p-6 border-2 border-gray-100 bg-white hover:border-blue-500 transition-all shadow-sm rounded-2xl">
+                    <div className="flex justify-between items-center mb-3">
+                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">RECORD ID: {r.id}</span>
+                        <span className={`text-xs font-bold px-3 py-1 rounded-full ${r.score > 0 ? 'bg-green-100 text-green-700' : r.score < 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>Score: {r.score}</span>
+                    </div>
+                    <p className="text-sm font-mono text-gray-500 leading-relaxed italic">"{r.content.replace(/{|}|'/g, "").substring(0, 300)}..."</p>
+                </Card>
+            ))}
+        </div>
+      </div>
     </div>
   )
 }

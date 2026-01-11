@@ -1,2 +1,20 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+/* in globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Add this block */
+@layer base {
+  body {
+    @apply bg-white text-gray-900 transition-colors duration-300;
+  }
+  .dark body {
+    @apply bg-black text-white;
+  }
+}
+/* in globals.css */
+body {
+  @apply bg-white text-black dark:bg-zinc-950 dark:text-white;
+}

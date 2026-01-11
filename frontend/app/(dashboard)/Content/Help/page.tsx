@@ -1,92 +1,118 @@
 "use client"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { 
+  HelpCircle, 
+  Upload, 
+  MousePointer2, 
+  Play, 
+  Download, 
+  FileWarning, 
+  Info,
+  ChevronRight,
+  Code,
+  CheckCircle2
+} from "lucide-react"
+import Link from "next/link"
 
-import React from "react";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
+const allFeatures = [
+  { name: "Summarization", desc: "Generates statistical and categorical distribution reports." },
+  { name: "Translation", desc: "Auto-detects and converts non-English content to English." },
+  { name: "Keyword Extraction", desc: "Identifies primary themes based on word frequency." },
+  { name: "Sentiment Analysis", desc: "Determines emotional polarity in opinion-based text." },
+  { name: "Grammar Correction", desc: "Optimizes sentence structure and syntax flow." },
+  { name: "Spell Check", desc: "Verifies vocabulary against standard English lexicons." },
+  { name: "Remove Stop Words", desc: "Filters out high-frequency noise words for cleaner data." },
+  { name: "Convert Case", desc: "Transforms text into Uppercase, Lowercase, or Title case." },
+]
 
 export default function HelpPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-zinc-900 dark:via-black dark:to-zinc-900 px-4 py-12 flex flex-col items-center">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">
-        Parallel-Text Handling - Help Center
-      </h1>
+    <div className="p-12 max-w-5xl mx-auto space-y-10 animate-in fade-in duration-500">
+      
+      <div className="text-center space-y-2">
+        <h1 className="text-4xl font-bold text-gray-800 flex items-center justify-center gap-3">
+          <HelpCircle className="text-blue-600" size={36} /> Help Center
+        </h1>
+        <p className="text-gray-500 text-lg">Comprehensive guide to the TextFlow Analytics platform</p>
+      </div>
 
-      <div className="grid gap-6 max-w-3xl w-full">
-        {/* Feature 1 */}
-        <Card className="rounded-2xl border border-gray-100 dark:border-zinc-800 shadow-lg">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        
+        {/* HOW TO USE */}
+        <Card className="rounded-3xl border-none shadow-md bg-white p-2">
           <CardHeader>
-            <CardTitle>Uploading Parallel Texts</CardTitle>
-            <CardDescription>
-              Learn how to upload your source and target texts for parallel processing.
-            </CardDescription>
+            <CardTitle className="flex items-center gap-2 text-blue-600">
+                <MousePointer2 size={20}/> Usage Protocol
+            </CardTitle>
           </CardHeader>
-          <CardContent className="text-gray-700 dark:text-gray-300">
-            <p>
-              Click the "Upload" button on the main dashboard to select your text files. 
-              Ensure your files are aligned sentence by sentence for best results. Supported formats include .txt and .csv.
-            </p>
+          <CardContent className="space-y-4 text-sm text-gray-600">
+            <div className="flex gap-3"><Upload size={16} className="mt-1"/> <p><b>1. Upload:</b> Select a standard CSV file via the dashboard zone.</p></div>
+            <div className="flex gap-3"><Info size={16} className="mt-1"/> <p><b>2. Configure:</b> Select the analysis modules you wish to run.</p></div>
+            <div className="flex gap-3"><Play size={16} className="mt-1"/> <p><b>3. Execute:</b> Initialize the high-speed parallel processing engine.</p></div>
+            <div className="flex gap-3"><Download size={16} className="mt-1"/> <p><b>4. Export:</b> Review insights or download the full CSV report.</p></div>
           </CardContent>
         </Card>
 
-        {/* Feature 2 */}
-        <Card className="rounded-2xl border border-gray-100 dark:border-zinc-800 shadow-lg">
+        {/* SUPPORTED FILES */}
+        <Card className="rounded-3xl border-none shadow-md bg-white p-2">
           <CardHeader>
-            <CardTitle>Viewing Side-by-Side Texts</CardTitle>
-            <CardDescription>
-              Understand how to read and compare your parallel texts.
-            </CardDescription>
+            <CardTitle className="flex items-center gap-2 text-green-600">
+                <FileWarning size={20}/> Data Requirements
+            </CardTitle>
           </CardHeader>
-          <CardContent className="text-gray-700 dark:text-gray-300">
-            <p>
-              Once uploaded, your texts will appear side-by-side for easy comparison. 
-              You can highlight sentences, add notes, or jump to specific sections using the navigation panel.
-            </p>
+          <CardContent className="space-y-4 text-sm text-gray-600">
+            <ul className="list-disc pl-5 space-y-2">
+              <li><b>CSV Format:</b> Standard comma-separated values only.</li>
+              <li><b>Encoding:</b> Files must be UTF-8 encoded for accuracy.</li>
+              <li><b>Headers:</b> First row must contain valid column names.</li>
+              <li><b>Scale:</b> Optimized for files with up to 50,000 records.</li>
+            </ul>
           </CardContent>
         </Card>
 
-        {/* Feature 3 */}
-        <Card className="rounded-2xl border border-gray-100 dark:border-zinc-800 shadow-lg">
+        {/* ALL FEATURES LOGIC */}
+        <Card className="md:col-span-2 rounded-3xl border-none shadow-md bg-white p-4">
           <CardHeader>
-            <CardTitle>Exporting Aligned Texts</CardTitle>
-            <CardDescription>
-              Save your processed parallel texts for future use.
-            </CardDescription>
+            <CardTitle className="flex items-center gap-2 text-blue-600">
+                <CheckCircle2 size={20}/> Core Analytical Modules
+            </CardTitle>
           </CardHeader>
-          <CardContent className="text-gray-700 dark:text-gray-300">
-            <p>
-              After editing or reviewing, you can export your texts in multiple formats including .txt, .csv, or .json. 
-              This allows easy integration with translation memory systems or other linguistic tools.
-            </p>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
+                {allFeatures.map((f, i) => (
+                    <div key={i} className="border-b border-gray-50 pb-2">
+                        <p className="text-sm font-bold text-gray-700">{f.name}</p>
+                        <p className="text-xs text-gray-500">{f.desc}</p>
+                    </div>
+                ))}
+            </div>
           </CardContent>
         </Card>
 
-        {/* Feature 4 */}
-        <Card className="rounded-2xl border border-gray-100 dark:border-zinc-800 shadow-lg">
+        {/* COMMON ISSUES */}
+        <Card className="md:col-span-2 rounded-3xl border-none shadow-md bg-white p-4">
           <CardHeader>
-            <CardTitle>Getting Support</CardTitle>
-            <CardDescription>
-              Contact our support team for any issues or questions.
-            </CardDescription>
+            <CardTitle className="flex items-center gap-2 text-orange-600">
+                <Info size={20}/> Troubleshooting & System Behavior
+            </CardTitle>
           </CardHeader>
-          <CardContent className="text-gray-700 dark:text-gray-300">
-            <p>
-              For troubleshooting or feature requests, please email us at{" "}
-              <a
-                href="mailto:support@paralleltexthandler.com"
-                className="text-blue-600 hover:underline"
-              >
-                support@paralleltexthandler.com
-              </a>{" "}
-              or visit our FAQ section on the website.
-            </p>
+          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-600">
+            <p><b>"Not Applicable":</b> This status appears if the module determines the data type is not compatible (e.g., trying to run Grammar checks on ID numbers).</p>
+            <p><b>Analysis Mismatch:</b> Ensure columns are clearly named. Factual data is automatically filtered out of emotional sentiment tasks to maintain accuracy.</p>
+            <p><b>Connection Errors:</b> Ensure the analytical backend is active. Processing large files requires a stable connection to the parallel engine.</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* UPDATED BUTTON COLOR */}
+      <div className="flex justify-center pt-6">
+        <Link href="/Content/Help/Documentation">
+            <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl gap-2 px-10 h-14 shadow-lg transition-all active:scale-95 font-bold">
+                <Code size={20}/> Open Developer Documentation <ChevronRight size={18}/>
+            </Button>
+        </Link>
+      </div>
     </div>
-  );
+  )
 }

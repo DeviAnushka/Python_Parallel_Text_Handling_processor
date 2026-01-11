@@ -1,113 +1,77 @@
-"use client"
+"use client";
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Bell, CheckCircle2, AlertCircle, Clock, Eye, Download, X, Inbox } from "lucide-react";
+import AnswerGrid from "../../Answer/page";
 
-import React, { useEffect, useState } from "react"
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+export default function InboxPage() {
+  const [messages, setMessages] = useState([]);
+  const [selectedReport, setSelectedReport] = useState<any>(null);
 
-interface InboxItem {
-  id: number
-  title: string
-  content: string
-  date: string
-}
-
-const InboxPage = () => {
-  // ✅ Temp data: shown initially
-  const tempMessages: InboxItem[] = [
-    {
-      id: 1,
-      title: "Text Summarization Complete",
-      content: "Your text 'Hello World' was summarized successfully.",
-      date: "2026-01-02",
-    },
-    {
-      id: 2,
-      title: "Translation Complete",
-      content: "Your text was translated to French: 'Bonjour le monde'.",
-      date: "2026-01-02",
-    },
-    {
-      id: 3,
-      title: "Spell Check Result",
-      content: "Your text 'Helo Wrld' was corrected to 'Hello World'.",
-      date: "2026-01-01",
-    },
-  ]
-
-  const [messages, setMessages] = useState<InboxItem[]>(tempMessages)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-
-  // ✅ Fetch real data from backend
   useEffect(() => {
-    const fetchMessages = async () => {
-      setLoading(true)
-      setError("")
+    fetch("http://127.0.0.1:5001/api/inbox").then(res => res.json()).then(data => setMessages(data));
+  }, []);
 
-      try {
-        const res = await fetch("/api/inbox")
-        if (!res.ok) throw new Error("Failed to fetch messages")
-        const data: InboxItem[] = await res.json()
-
-        // Replace messages only if backend returns data
-        if (data && data.length > 0) setMessages(data)
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Something went wrong")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchMessages()
-  }, [])
+  const handleDownload = (reportData: string, id: string) => {
+    const results = JSON.parse(reportData);
+    let csv = "Operation,Result\n";
+    results.forEach((r: any) => { csv += `"${r.title}","${r.output.replace(/"/g, '""')}"\n`; });
+    const url = window.URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    const a = document.createElement('a'); a.href = url; a.download = `Report_${id}.csv`; a.click();
+  };
 
   return (
-    <div className="p-6 bg-gray-50 dark:bg-zinc-900 min-h-screen space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-        Inbox
-      </h1>
+    <div className="p-8 max-w-5xl mx-auto space-y-6">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold flex items-center gap-3 text-gray-800"><Bell className="text-blue-600" /> Intelligence Inbox</h1>
+        <Button variant="outline" className="text-red-500 rounded-xl" onClick={() => fetch("http://127.0.0.1:5001/api/inbox/clear", {method: 'POST'}).then(() => setMessages([]))}>Clear All</Button>
+      </div>
 
-      {loading && <p className="text-gray-500 dark:text-gray-400">Loading messages...</p>}
-      {/* {error && <p className="text-red-600 dark:text-red-400">{error}</p>} */}
+      {selectedReport && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-50 flex items-center justify-center p-6">
+          <Card className="w-full max-w-6xl max-h-[85vh] overflow-y-auto bg-white rounded-3xl shadow-2xl relative p-10 animate-in zoom-in duration-300">
+            <button onClick={() => setSelectedReport(null)} className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full"><X size={24} /></button>
+            <h2 className="text-2xl font-bold mb-1">Archived Analysis</h2>
+            <p className="text-xs text-gray-400 mb-8 font-mono">{selectedReport.timestamp}</p>
+            <AnswerGrid results={JSON.parse(selectedReport.report_data)} />
+            <div className="mt-10 flex justify-end">
+              <Button onClick={() => handleDownload(selectedReport.report_data, selectedReport.id)} className="bg-green-600 hover:bg-green-700 gap-2 px-8 h-12 rounded-xl font-bold">
+                <Download size={18} /> Export as CSV
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
 
-      {messages.length === 0 && !loading && !error ? (
-        <p className="text-gray-500 dark:text-gray-400">No messages yet.</p>
+      {messages.length === 0 ? (
+        <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed"><Inbox className="mx-auto text-gray-300 mb-4" size={48} /><p className="text-gray-400">Vault is currently empty.</p></div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {messages.map((msg) => (
-            <Card
-              key={msg.id}
-              className="border-gray-200 dark:border-zinc-800 shadow-md rounded-2xl"
-            >
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {msg.title}
-                </CardTitle>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{msg.date}</p>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700 dark:text-gray-300">{msg.content}</p>
-              </CardContent>
-              <CardFooter>
-                <Button
-                  size="sm"
-                  onClick={() => alert(`Opening message: ${msg.title}`)}
-                >
-                  View
-                </Button>
-              </CardFooter>
+        <div className="space-y-4">
+          {messages.map((msg: any) => (
+            <Card key={msg.id} className="border-none shadow-sm rounded-2xl overflow-hidden border border-gray-100">
+              <div className="flex">
+                <div className={`w-1.5 ${msg.type === 'alert' ? 'bg-red-500' : 'bg-green-500'}`} />
+                <CardContent className="p-5 flex gap-4 items-center w-full bg-white">
+                  <div className={`p-3 rounded-xl ${msg.type === 'alert' ? 'bg-red-50' : 'bg-green-50'}`}>
+                    {msg.type === 'alert' ? <AlertCircle className="text-red-500" /> : <CheckCircle2 className="text-blue-500" />}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-gray-800">{msg.title}</h4>
+                    <p className="text-[10px] text-gray-400">{msg.message}</p>
+                  </div>
+                  {msg.report_data && (
+                      <div className="flex gap-2">
+                        <Button onClick={() => setSelectedReport(msg)} size="sm" variant="outline" className="gap-2 border-blue-100 text-blue-600 rounded-lg"><Eye size={14}/> View</Button>
+                        <Button onClick={() => handleDownload(msg.report_data, msg.id)} size="sm" variant="ghost" className="text-gray-300 hover:text-green-600"><Download size={18}/></Button>
+                      </div>
+                  )}
+                </CardContent>
+              </div>
             </Card>
           ))}
         </div>
       )}
     </div>
-  )
+  );
 }
-
-export default InboxPage

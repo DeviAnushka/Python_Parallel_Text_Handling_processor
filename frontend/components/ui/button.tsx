@@ -55,6 +55,8 @@ function Button({
       data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
+      // ADDED BELOW: This ignores attributes like fdprocessedid from browser extensions
+      suppressHydrationWarning 
     />
   )
 }

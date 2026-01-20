@@ -105,7 +105,6 @@ export default function HelpPage() {
         </Card>
       </div>
 
-      {/* UPDATED BUTTON COLOR */}
       <div className="flex justify-center pt-6">
         <Link href="/Content/Help/Documentation">
             <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl gap-2 px-10 h-14 shadow-lg transition-all active:scale-95 font-bold">

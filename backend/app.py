@@ -53,9 +53,10 @@ def get_db():
 
 def init_db():
     with get_db() as db:
+        # Milestone 1: Users
         db.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT UNIQUE, password TEXT)")
         
-        # MILESTONE 4: Unified Search Index
+        # Milestone 4: Search Index
         db.execute("""CREATE TABLE IF NOT EXISTS search_index (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             filename TEXT,
@@ -65,14 +66,32 @@ def init_db():
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)""")
         db.execute('CREATE INDEX IF NOT EXISTS idx_global_content ON search_index(content)')
 
-        db.execute("""CREATE TABLE IF NOT EXISTS inbox (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, message TEXT, type TEXT, report_data TEXT, email_sent INTEGER DEFAULT 0, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)""")
-        db.execute("""CREATE TABLE IF NOT EXISTS activity_history (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT, operations TEXT, status TEXT, records_count INTEGER, processing_time REAL, report_data TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)""")
-    print("✅ DATABASE SYNCHRONIZED")
+        # Milestone 3: Inbox
+        db.execute("""CREATE TABLE IF NOT EXISTS inbox (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, 
+            title TEXT, message TEXT, type TEXT, 
+            report_data TEXT, email_sent INTEGER DEFAULT 0, 
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)""")
+        
+        # Calendar: Activity History
+        db.execute("""CREATE TABLE IF NOT EXISTS activity_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, 
+            filename TEXT, operations TEXT, status TEXT, 
+            records_count INTEGER, processing_time REAL, 
+            report_data TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)""")
+        
+        # Contact Support Table (FIXED)
+        db.execute("""CREATE TABLE IF NOT EXISTS contact_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, 
+            name TEXT, email TEXT, message TEXT, 
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)""")
+            
+    print("✅ ALL DATABASE SYSTEMS SYNCHRONIZED")
 
 init_db()
 
 # ==========================================
-# ROUTES
+# AUTH & CONTACT ROUTES
 # ==========================================
 
 @app.route("/api/signup", methods=["POST"])
@@ -94,6 +113,22 @@ def login():
     if user and check_password_hash(user['password'], data.get("password")):
         return jsonify({"message": "OK", "user": data.get("email")}), 200
     return jsonify({"message": "Invalid credentials"}), 401
+
+@app.route("/api/contact", methods=["POST"])
+def contact():
+    try:
+        data = request.json
+        with get_db() as db:
+            db.execute("INSERT INTO contact_messages (name, email, message) VALUES (?, ?, ?)", 
+                       (data.get('name'), data.get('email'), data.get('message')))
+            db.commit()
+        return jsonify({"message": "Ticket received"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ==========================================
+# ANALYSIS PIPELINE
+# ==========================================
 
 @app.route("/api/analyze", methods=["POST"])
 def analyze():
@@ -117,10 +152,10 @@ def analyze():
         email_flag = 1 if success else 2
 
     with get_db() as db:
-        # MILESTONE 4: Indexing every row and column for Global Search
-        for idx, row in enumerate(raw_rows[:100]): # Limit for performance
+        # Milestone 4: Indexing
+        for idx, row in enumerate(raw_rows[:50]):
             for col_name, value in row.items():
-                if len(str(value)) > 2: # Only index meaningful text
+                if len(str(value)) > 2:
                     db.execute("INSERT INTO search_index (filename, column_name, content, sentiment_score) VALUES (?, ?, ?, ?)",
                                (filename, col_name, str(value), scores[idx] if idx < len(scores) else 0))
 
@@ -133,11 +168,14 @@ def analyze():
 
     return jsonify({"results": results, "stats": stats})
 
+# ==========================================
+# DATA RETRIEVAL
+# ==========================================
+
 @app.route('/api/search')
 def search():
     q = request.args.get('q', '').lower()
     with get_db() as db:
-        # Searches across all indexed content from all files
         rows = db.execute("SELECT * FROM search_index WHERE content LIKE ? ORDER BY timestamp DESC LIMIT 20", (f'%{q}%',)).fetchall()
     return jsonify([dict(r) for r in rows])
 
@@ -152,6 +190,15 @@ def get_history():
     with get_db() as db:
         rows = db.execute("SELECT * FROM activity_history ORDER BY timestamp DESC").fetchall()
     return jsonify([dict(r) for r in rows])
+
+@app.route('/api/cleanup', methods=['POST'])
+def cleanup():
+    with get_db() as db:
+        db.execute("DELETE FROM search_index")
+        db.execute("DELETE FROM activity_history")
+        db.execute("DELETE FROM inbox")
+        db.commit()
+    return jsonify({"message": "System logs purged"}), 200
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

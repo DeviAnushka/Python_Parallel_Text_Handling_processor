@@ -1,19 +1,24 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 /* in globals.css */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Add this block */
 @layer base {
+  /* Standard Light Mode */
   body {
-    /* Standard Light Mode */
-    @apply bg-white text-slate-900 transition-colors duration-300;
+    @apply bg-gray-50 text-slate-900 transition-colors duration-300;
   }
 
+  /* Full Dark Mode - Applies to the WHOLE screen */
   .dark body {
-    /* Full Dark Mode Background & Text */
     @apply bg-black text-white;
+  }
+
+  /* Resetting default card/input behavior for Dark Mode */
+  .dark .card, .dark div, .dark section {
+    @apply border-zinc-800;
   }
 }

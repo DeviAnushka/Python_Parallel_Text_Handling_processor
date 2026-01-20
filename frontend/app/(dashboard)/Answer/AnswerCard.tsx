@@ -4,23 +4,28 @@ import { Copy, CheckCircle } from "lucide-react"
 
 const AnswerCard = ({ result }: any) => {
   return (
-    <Card className="relative p-6 rounded-2xl border shadow-sm h-full">
+    <Card className="relative p-6 rounded-2xl border shadow-sm flex flex-col h-[350px] bg-white dark:bg-zinc-900 overflow-hidden">
       <button
         onClick={() => navigator.clipboard.writeText(result.output)}
-        className="absolute top-3 right-3 text-gray-400 hover:text-blue-600"
+        className="absolute top-4 right-4 text-gray-400 hover:text-blue-600 transition-colors"
       >
-        <Copy className="w-4 h-4" />
+        <Copy size={16} />
       </button>
 
-      <h3 className="font-bold text-gray-900 mb-3">{result.title}</h3>
+      <h3 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+        <CheckCircle size={16} className="text-green-500" />
+        {result.title}
+      </h3>
       
-      {/* Ensure ONLY result.output is here. REMOVE ANY EXTRA <p> TAGS */}
-      <div className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">
-        {result.output}
+      {/* SCROLLABLE AREA: Handles large text and long lines */}
+      <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-200">
+        <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap break-words font-mono">
+          {result.output}
+        </p>
       </div>
 
-      <div className="absolute bottom-3 right-3">
-        <CheckCircle className="text-green-500 w-5 h-5" />
+      <div className="mt-4 pt-3 border-t border-gray-100 dark:border-zinc-800 flex justify-between items-center">
+         <span className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">Process Verified</span>
       </div>
     </Card>
   )

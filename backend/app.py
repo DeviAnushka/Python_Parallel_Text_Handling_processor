@@ -5,6 +5,9 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from werkzeug.security import generate_password_hash, check_password_hash
 from backend_text_analysis import TextAnalyzer
+import nltk
+nltk.download('punkt')
+nltk.download('brown')
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})

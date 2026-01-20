@@ -6,6 +6,7 @@ from email.mime.multipart import MIMEMultipart
 from werkzeug.security import generate_password_hash, check_password_hash
 from backend_text_analysis import TextAnalyzer
 import nltk
+import os
 nltk.download('punkt')
 nltk.download('brown')
 
@@ -204,4 +205,7 @@ def cleanup():
     return jsonify({"message": "System logs purged"}), 200
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    # Get port from environment variable (Render requirement)
+    port = int(os.environ.get("PORT", 5001))
+    # host must be 0.0.0.0 for public access
+    app.run(debug=False, host='0.0.0.0', port=port)

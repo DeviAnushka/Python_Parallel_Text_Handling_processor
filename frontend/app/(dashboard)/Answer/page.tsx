@@ -2,7 +2,7 @@
 
 import AnswerCard from "./AnswerCard"
 
-const AnswerGrid = ({ results }: any) => {
+const AnswerGrid = ({ results = [] }: any) => {
   if (results.length === 0) return null
 
   return (

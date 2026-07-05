@@ -41,7 +41,7 @@ export default function SettingsPage() {
     if (purgeInput !== "PURGE") return;
     setIsClearing(true);
     try {
-      const res = await fetch("http://127.0.0.1:5001/api/cleanup", { method: "POST" });
+      const res = await fetch("https://python-parallel-text-handling-processor-39gb.onrender.com/api/cleanup", { method: "POST" });
       if (res.ok) { alert("Indexed storage purged."); setShowConfirm(false); setPurgeInput(""); }
     } catch (e) { alert("Backend failure."); }
     finally { setIsClearing(false); }
@@ -111,8 +111,12 @@ export default function SettingsPage() {
                     <div className="space-y-2">
                         <p className="text-xs font-medium text-gray-500">Backend Server Endpoint</p>
                         <div className="flex gap-2">
-                            <Input value="http://127.0.0.1:5001" readOnly className="bg-gray-50 dark:bg-zinc-800 border-none dark:text-zinc-300 font-mono text-sm cursor-not-allowed" />
-                            <Button variant="outline" size="icon" className="rounded-xl dark:border-zinc-700" onClick={() => {navigator.clipboard.writeText("http://127.0.0.1:5001"); setCopied(true); setTimeout(()=>setCopied(false), 2000)}}>
+                            <Input
+  value="https://python-parallel-text-handling-processor-39gb.onrender.com"
+  readOnly
+  className="bg-gray-50 dark:bg-zinc-800 border-none dark:text-zinc-300 font-mono text-sm cursor-not-allowed"
+/>
+                            <Button variant="outline" size="icon" className="rounded-xl dark:border-zinc-700" onClick={() => {navigator.clipboard.writeText(""); setCopied(true); setTimeout(()=>setCopied(false), 2000)}}>
                                 {copied ? <Check size={16} className="text-green-500"/> : <Copy size={16}/>}
                             </Button>
                         </div>

@@ -13,7 +13,7 @@ export default function ContactUsPage() {
     if (!form.message) return alert("Please type a message");
     setLoading(true);
     try {
-      const res = await fetch("http://127.0.0.1:5001/api/contact", {
+      const res = await fetch("https://python-parallel-text-handling-processor-39gb.onrender.com/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),

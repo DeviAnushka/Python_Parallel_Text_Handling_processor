@@ -15,7 +15,7 @@ export default function CalendarPage() {
   const [filter, setFilter] = useState("Month"); 
 
   useEffect(() => {
-    fetch("http://127.0.0.1:5001/api/history")
+    fetch("https://python-parallel-text-handling-processor-39gb.onrender.com/api/history")
       .then(res => res.json())
       .then(data => setHistory(data));
   }, []);

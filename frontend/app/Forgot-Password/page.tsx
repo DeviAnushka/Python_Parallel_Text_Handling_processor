@@ -17,7 +17,7 @@ export default function ForgotPassword() {
     if (!email || !newPassword) return alert("Fill all fields");
     setIsLoading(true);
     try {
-      const res = await fetch("http://127.0.0.1:5001/api/reset-password", {
+      const res = await fetch("http:/api/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, new_password: newPassword }),

@@ -10,7 +10,7 @@ export default function InboxPage() {
   const [selectedReport, setSelectedReport] = useState<any>(null);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:5001/api/inbox")
+    fetch("https://python-parallel-text-handling-processor-39gb.onrender.com/api/inbox")
       .then(res => {
           if(!res.ok) throw new Error("Backend error");
           return res.json();

@@ -92,7 +92,7 @@ export default function DashboardPage() {
 
     setIsLoading(true);
     try {
-      const res = await fetch("http://127.0.0.1:5001/api/analyze", {
+      const res = await fetch("https://python-parallel-text-handling-processor-39gb.onrender.com/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -124,7 +124,7 @@ export default function DashboardPage() {
   const handleSearch = async () => {
       if(!searchQuery.trim()) return;
       try {
-        const res = await fetch(`http://127.0.0.1:5001/api/search?q=${searchQuery}`);
+        const res = await fetch(`https://python-parallel-text-handling-processor-39gb.onrender.com/api/search?q=${searchQuery}`);
         const data = await res.json();
         setSearchResults(data);
       } catch (e) {

@@ -20,8 +20,8 @@ DATABASE_PATH = 'users.db'
 # ==========================================
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 465 
-SENDER_EMAIL = "anushkaswamysetty@gmail.com"
-SENDER_PASSWORD = "lmrj rtvd ydsz xfri" # 16-digit App Password
+SENDER_EMAIL = os.environ.get("SENDER_EMAIL")
+SENDER_PASSWORD = os.environ.get("SENDER_PASSWORD")
 
 def send_analysis_email(recipient, filename, results_list):
     try:
@@ -204,6 +204,20 @@ def cleanup():
         db.commit()
     return jsonify({"message": "System logs purged"}), 200
 
+@app.route("/")
+def home():
+    return jsonify({
+        "status": "running",
+        "message": "Python Parallel Text Handling Processor API is live!",
+        "endpoints": [
+            "/api/signup",
+            "/api/login",
+            "/api/analyze",
+            "/api/search",
+            "/api/history",
+            "/api/inbox"
+        ]
+    })
 if __name__ == '__main__':
     # Get port from environment variable (Render requirement)
     port = int(os.environ.get("PORT", 5001))
